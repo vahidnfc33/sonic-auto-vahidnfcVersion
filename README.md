@@ -47,7 +47,7 @@ sudo apt-get install npm
 npm --version
 ```
 
-1. More Dependecies
+2. More Dependecies
 ```console
 sudo apt-get install git
 
