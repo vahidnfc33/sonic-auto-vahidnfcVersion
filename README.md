@@ -15,8 +15,37 @@ Sonic Odyssey Bot is an application designed for interacting with the Sonic Odys
 
 ## Prerequisites
 
-- Node.js installed on your machine
-- `npm` or `yarn` package manager
+1. Install Nodejs18
+```console
+# Check Nodejs Version
+node --version
+# if 18, skip nodejs steps
+
+# Delete Nodejs old files
+sudo apt-get remove nodejs
+sudo apt-get purge nodejs
+sudo apt-get autoremove
+sudo rm /etc/apt/keyrings/nodesource.gpg
+sudo rm /etc/apt/sources.list.d/nodesource.list
+
+# Install Nodejs 18
+NODE_MAJOR=18
+sudo apt-get update
+sudo apt-get install -y ca-certificates curl gnupg
+sudo mkdir -p /etc/apt/keyrings
+
+curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | sudo gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg
+
+echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_${NODE_MAJOR}.x nodistro main" | sudo tee /etc/apt/sources.list.d/nodesource.list
+
+sudo apt-get update
+sudo apt-get install -y nodejs
+node --version
+
+# Install npm
+sudo apt-get install npm
+npm --version
+```
 
 ## Installation
 
@@ -44,6 +73,7 @@ Sonic Odyssey Bot is an application designed for interacting with the Sonic Odys
 
    - Create `accounts.json` with an array of seed phrases.
    - Create `privateKeys.json` with an array of private keys (base58 encoded).
+   - You can create a file with `nano` command: for example: nano `privateKeys.json`
 
    Example `accounts.json`:
    ```json
@@ -63,13 +93,15 @@ Sonic Odyssey Bot is an application designed for interacting with the Sonic Odys
 
 ## Usage
 
-Run the bot using Node.js:
+Run tx bot:
 
 ```bash
 npm start
 ```
 
 or
+
+Run claim bot:
 
 ```bash
 npm run claim
@@ -86,9 +118,6 @@ Follow the prompts to:
    - 2: Open Box
    - 3: Daily Login
 
-## Contributing
-
-Contributions are welcome! Feel free to open issues or pull requests for any improvements or fixes.
 
 ## License
 
