@@ -15,7 +15,7 @@ Sonic Odyssey Bot is an application designed for interacting with the Sonic Odys
 
 ## Prerequisites
 
-1. Install Nodejs18
+Install Nodejs18
 ```console
 # Check Nodejs Version
 node --version
@@ -47,7 +47,6 @@ sudo apt-get install npm
 npm --version
 ```
 
-2. More Dependecies
 ```console
 sudo apt-get install git
 
