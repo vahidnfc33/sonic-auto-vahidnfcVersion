@@ -47,6 +47,13 @@ sudo apt-get install npm
 npm --version
 ```
 
+1. More Dependecies
+```console
+sudo apt-get install git
+
+sudo apt update & sudo apt upgrade -y
+```
+
 ## Installation
 
 1. Clone the repository:
