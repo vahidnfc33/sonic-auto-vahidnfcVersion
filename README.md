@@ -77,17 +77,9 @@ sudo apt update & sudo apt upgrade -y
 
 4. Prepare input files:
 
-   - Create `accounts.json` with an array of seed phrases.
    - Create `privateKeys.json` with an array of private keys (base58 encoded).
    - You can create a file with `nano` command: for example: nano `privateKeys.json`
 
-   Example `accounts.json`:
-   ```json
-   [
-     "seed_phrase_1",
-     "seed_phrase_2"
-   ]
-   ```
 
    Example `privateKeys.json`:
    ```json
@@ -99,31 +91,31 @@ sudo apt update & sudo apt upgrade -y
 
 ## Usage
 
-Run tx bot:
+Run 100 tx for all private keys:
 
 ```bash
 npm start
 ```
 
-or
 
-Run claim bot:
+Daily login for all private keys:
 
 ```bash
-npm run claim
+npm run dailylogin
 ```
 
-Follow the prompts to:
 
-1. Select the input method (0 for seed phrase, 1 for private key).
-2. Specify the number of random addresses to generate.
-3. Enter the amount of SOL to send in each transaction.
-4. Enter the delay between each transaction in milliseconds (default is 1000ms).
-5. Choose an operation:
-   - 1: Claim Box
-   - 2: Open Box
-   - 3: Daily Login
+Claim boxes for all private keys:
 
+```bash
+npm run claimbox
+```
+
+Open boxes for all private keys:
+
+```bash
+npm run openbox
+```
 
 ## License
 
