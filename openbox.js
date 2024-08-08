@@ -327,7 +327,7 @@ async function dailyLogin(token, keypair, retries = 3) {
     console.log(`Error in bot operation: ${error}`.red);
   } finally {
     console.log(
-      'Thanks for having us! Subscribe: https://t.me/HappyCuanAirdrop'.magenta
+      'Thanks for having us! Subscribe: https://t.me/UbuntuForNodes'.magenta
     );
   }
 })();
