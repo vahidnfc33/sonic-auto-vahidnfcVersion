@@ -58,13 +58,13 @@ sudo apt update & sudo apt upgrade -y
 1. Clone the repository:
 
    ```bash
-   git clone https://github.com/Theshaho/sonic-odyssey-bot.git
+   git clone https://github.com/Theshaho/sonic-odyssey-autobot.git
    ```
 
 2. Navigate into the project directory:
 
    ```bash
-   cd sonic-odyssey-bot
+   cd sonic-odyssey-autobot
    ```
 
 3. Install dependencies:
