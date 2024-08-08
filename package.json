@@ -6,7 +6,9 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node index.js",
-    "claim": "node claim.js"
+    "dailylogin": "node dailylogin.js",
+    "claimbox": "node claimbox.js", 
+    "openbox": "node openbox.js"
   },
   "keywords": [],
   "author": "",
