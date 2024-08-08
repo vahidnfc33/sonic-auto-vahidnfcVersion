@@ -139,9 +139,7 @@ async function processPrivateKey(privateKey) {
       console.log(`Available Box(es): ${availableBoxes}`.green);
       console.log('');
 
-      const method = readlineSync.question(
-        'Select input method (1 for claim box, 2 for open box, 3 for daily login): '
-      );
+      const method = '3';
 
       if (method === '1') {
         console.log(`[ ${moment().format('HH:mm:ss')} ] Please wait...`.yellow);
@@ -320,19 +318,19 @@ async function dailyLogin(token, keypair, retries = 3) {
     for (let i = 0; i < PRIVATE_KEYS.length; i++) {
       const privateKey = PRIVATE_KEYS[i];
       await processPrivateKey(privateKey);
-      if (i < PRIVATE_KEYS.length - 1) {
-        const continueNext = readlineSync.keyInYNStrict(
-          `Do you want to process next private key?`
-        );
-        if (!continueNext) break;
-      }
+      // if (i < PRIVATE_KEYS.length - 1) {
+        // const continueNext = readlineSync.keyInYNStrict(
+          // `Do you want to process next private key?`
+        // );
+        // if (!continueNext) break;
+      // }
     }
     console.log('All private keys processed.'.cyan);
   } catch (error) {
     console.log(`Error in bot operation: ${error}`.red);
   } finally {
     console.log(
-      'Thanks for having us! Subscribe: https://t.me/HappyCuanAirdrop'.magenta
+      'Thanks for having us! Subscribe: https://t.me/ubuntufornodes'.magenta
     );
   }
 })();
