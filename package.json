@@ -7,7 +7,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node index.js",
     "dailylogin": "node dailylogin.js",
-    "claimbox": "node claimbox.js", 
+    "claim": "node claim.js", 
     "openbox": "node openbox.js"
   },
   "keywords": [],
