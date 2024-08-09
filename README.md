@@ -91,6 +91,8 @@ sudo apt update & sudo apt upgrade -y
 
 ## Usage
 
+### It will send transaction with random amount and random delay so it's better to do run it in a screen.
+
 Run 100 tx for all private keys:
 
 ```bash
