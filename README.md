@@ -10,8 +10,8 @@ Sonic Odyssey Bot is an application designed for interacting with the Sonic Odys
 - **Daily Login**: Automates the daily login process.
 - **Input Methods**: Supports input via seed phrases or private keys.
 - **Random Address Generation**: Generates a specified number of random addresses for sending transactions.
-- **Adjustable Amount of SOL**: Allows users to specify the amount of SOL to send in each transaction.
-- **Transaction Delay**: Allows users to specify a delay between each transaction.
+- **Adjustable Amount of SOL**: Automatically generates a random amount of SOL to send in each transaction.
+- **Transaction Delay**: Automatically generates a random delay between each transaction.
 
 ## Prerequisites
 
