@@ -93,12 +93,17 @@ sudo apt update & sudo apt upgrade -y
 
 ### It will send transaction with random amount and random delay so it's better to do run it in a screen.
 
+```bash
+screen -S sonictx
+```
+
 Run 100 tx for all private keys:
 
 ```bash
 npm start
 ```
 
+Ctl + A + D to detach from the screen.
 
 Daily login for all private keys:
 
