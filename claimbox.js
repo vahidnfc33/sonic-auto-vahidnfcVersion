@@ -318,12 +318,10 @@ async function dailyLogin(token, keypair, retries = 3) {
     for (let i = 0; i < PRIVATE_KEYS.length; i++) {
       const privateKey = PRIVATE_KEYS[i];
       await processPrivateKey(privateKey);
-      // if (i < PRIVATE_KEYS.length - 1) {
-        // const continueNext = readlineSync.keyInYNStrict(
-          // `Do you want to process next private key?`
-        // );
-        // if (!continueNext) break;
-      // }
+       if (i < PRIVATE_KEYS.length - 1) {
+         const continueNext = 'y';
+         if (!continueNext) break;
+       }
     }
     console.log('All private keys processed.'.cyan);
   } catch (error) {
