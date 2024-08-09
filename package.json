@@ -8,6 +8,7 @@
     "start": "node index.js",
     "dailylogin": "node dailylogin.js",
     "claim": "node claim.js", 
+    "claimbox": "node claimbox.js", 
     "openbox": "node openbox.js"
   },
   "keywords": [],
