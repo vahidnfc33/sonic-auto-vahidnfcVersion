@@ -20,14 +20,7 @@ const { displayHeader } = require('./src/displayUtils');
   const method = '1';
 
   let seedPhrasesOrKeys;
-  if (method === '0') {
-    seedPhrasesOrKeys = JSON.parse(fs.readFileSync('accounts.json', 'utf-8'));
-    if (!Array.isArray(seedPhrasesOrKeys) || seedPhrasesOrKeys.length === 0) {
-      throw new Error(
-        colors.red('accounts.json is not set correctly or is empty')
-      );
-    }
-  } else if (method === '1') {
+ if (method === '1') {
     seedPhrasesOrKeys = JSON.parse(
       fs.readFileSync('privateKeys.json', 'utf-8')
     );
@@ -36,12 +29,10 @@ const { displayHeader } = require('./src/displayUtils');
         colors.red('privateKeys.json is not set correctly or is empty')
       );
     }
-  } else {
-    throw new Error(colors.red('Invalid input method selected'));
-  }
+  } 
 
   const defaultAddressCount = 100;
-  const addressCountInput = defaultAddressCount;
+  const addressCountInput = 100;
   const addressCount = addressCountInput
     ? parseInt(addressCountInput, 10)
     : defaultAddressCount;
@@ -71,9 +62,13 @@ const { displayHeader } = require('./src/displayUtils');
     rentExemptionAmount = 0.001;
   }
 
-  let amountToSend;
-  do {
-    amountToSend = 0.001;
+		
+function amountToSend_rand(){
+    let amountToSend;
+	
+	const amountInput = (Math.random() * (0.0030 - 0.00100) + 0.00100).toFixed(4);
+console.log(`random amount to send:${amountInput}`);
+    amountToSend = amountInput ? parseFloat(amountInput) : 0.001;
 
     if (isNaN(amountToSend) || amountToSend < rentExemptionAmount) {
       console.log(
@@ -90,15 +85,20 @@ const { displayHeader } = require('./src/displayUtils');
         )
       );
     }
-  } while (isNaN(amountToSend) || amountToSend < rentExemptionAmount);
+  
+return amountToSend;
+}
 
+function delay_rand(){
   const defaultDelay = 1000;
+  const delayInput = Math.floor(Math.random() * (20000 - 1000 + 1) + 1000);
+  const currentTime = new Date(); 
+  console.log(`Date: ${currentTime}`);
+console.log(`random delay time in milliseconds: ${delayInput}`);
+  return delayBetweenTx = delayInput ? parseInt(delayInput, 10) : defaultDelay;
 
-  const delayBetweenTx =  defaultDelay;
-
-  if (isNaN(delayBetweenTx) || delayBetweenTx < 0) {
-    throw new Error(colors.red('Invalid delay specified'));
-  }
+}
+  
 
   for (const [index, seedOrKey] of seedPhrasesOrKeys.entries()) {
     let fromKeypair;
@@ -117,15 +117,16 @@ const { displayHeader } = require('./src/displayUtils');
 
     for (const address of randomAddresses) {
       const toPublicKey = new PublicKey(address);
+	  const amnt = amountToSend_rand();
       try {
-        await sendSol(fromKeypair, toPublicKey, amountToSend);
+        await sendSol(fromKeypair, toPublicKey, amnt);
         console.log(
-          colors.green(`Successfully sent ${amountToSend} SOL to ${address}`)
+          colors.green(`Successfully sent ${amnt} SOL to ${address}`)
         );
       } catch (error) {
         console.error(colors.red(`Failed to send SOL to ${address}:`), error);
       }
-      await delay(delayBetweenTx);
+      await delay(delay_rand());
     }
   }
 })();
