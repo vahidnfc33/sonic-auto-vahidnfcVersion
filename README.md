@@ -143,8 +143,6 @@ To access the configuration menu, run the script with the `-v`  flag:
    b. Claim Box
    c. Open Box (for all wallets)
 
-This version is more concise, using less vertical space while still maintaining clarity. Is this format more suitable for your needs?
-
 
 
 ## Contributing
