@@ -4,9 +4,9 @@ const solana = require('@solana/web3.js');
 const axios = require('axios').default;
 const base58 = require('bs58');
 const nacl = require('tweetnacl');
-const { connection } = require('./src/solanaUtils');
-const { HEADERS } = require('./src/headers');
-const { displayHeader } = require('./src/displayUtils');
+const { connection } = require('./solanaUtils');
+const { HEADERS } = require('./headers');
+const { displayHeader } = require('./displayUtils');
 const readlineSync = require('readline-sync');
 const moment = require('moment');
 
