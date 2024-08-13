@@ -1,17 +1,21 @@
-# Sonic Odyssey Bot
+# Sonic Odyssey Autobot
 
-Sonic Odyssey Bot is an application designed for interacting with the Sonic Odyssey platform. It supports multiple features including sending SOL (Solana) cryptocurrency transactions, claiming rewards, opening mystery boxes, and daily login operations.
+Welcome to the Sonic Odyssey Autobot project. This bot is designed for automated interaction with the Sonic Odyssey game on the Solana blockchain. It performs various operations including sending transactions, daily logins, claiming boxes, and opening boxes for multiple wallets.
 
 ## Features
 
-- **Transaction Sending**: Sends SOL transactions from multiple accounts to random addresses.
-- **Claim Box**: Automates the process of claiming rewards boxes.
-- **Open Box**: Automates the process of opening mystery boxes.
-- **Daily Login**: Automates the daily login process.
-- **Input Methods**: Supports input via seed phrases or private keys.
-- **Random Address Generation**: Generates a specified number of random addresses for sending transactions.
-- **Adjustable Amount of SOL**: Automatically generates a random amount of SOL to send in each transaction.
-- **Transaction Delay**: Automatically generates a random delay between each transaction.
+-Automated transaction sending for multiple wallets
+-Configurable number of transactions per wallet (108-120)
+-Daily operations automation (login, claim box, open box)
+-Progress tracking and resumption capability
+-Customizable execution schedule (daily or continuous)
+-Interactive configuration menu
+-Wallet balance checking functionality
+-Manual trigger for daily operations
+-Random delays and amounts for natural behavior
+-Error handling and retry mechanisms
+-Support for multiple private keys
+-Modular design with separate utility functions
 
 ## Prerequisites
 
@@ -55,75 +59,98 @@ sudo apt update & sudo apt upgrade -y
 
 ## Installation
 
-1. Clone the repository:
+1. Clone the repository and navigate into the project directory:
 
    ```bash
-   git clone https://github.com/Theshaho/sonic-odyssey-autobot.git
-   ```
-
-2. Navigate into the project directory:
-
-   ```bash
-   cd sonic-odyssey-autobot
+   git clone https://github.com/vahidnfc33/sonic-auto-vahidnfcVersion.git && cd sonic-auto-vahidnfcVersion
    ```
 
 3. Install dependencies:
 
    ```bash
-   npm install
-   # or
-   yarn install
+   npm install node-schedule yargs inquirer inquirer colors @solana/web3.js
    ```
 
 4. Prepare input files:
 
-   - Create `privateKeys.json` with an array of private keys (base58 encoded).
-   - You can create a file with `nano` command: for example: nano `privateKeys.json`
+   - Create a `privateKeys.json` file in the root directory and add your private keys:
 
 
    Example `privateKeys.json`:
-   ```json
-   [
-     "base58_private_key_1",
-     "base58_private_key_2"
-   ]
-   ```
+  ```json
+  [
+    "private-key-1",
+    "private-key-2",
+    "private-key-3"
+  ]
+  ```
 
 ## Usage
 
-### It will send transaction with random amount and random delay so it's better to do run it in a screen.
-
 ```bash
-screen -S sonictx
+screen -S sonic
 ```
 
-Run 100 tx for all private keys:
+To run the bot, use the following command:
 
 ```bash
-npm start
+node main.js
 ```
 
 Ctl + A + D to detach from the screen.
 
-Daily login for all private keys:
+DONE :)
 
-```bash
-npm run dailylogin
-```
+-------------------
+## Configuration
+To access the configuration menu, run the script with the `-v`  flag:
+- Example: `node main.js -v`
+
+# Default Configuration
+
+## ⏰ Daily Run Time
+- **Range:** 1-5 UTC
+- **Minute:** 0
+- **Description:** Sets the time range when the script will run daily
+
+## 🔢 TX Count
+- **Range:** 108-120
+- **Description:** Defines the range of transactions to be sent per wallet
+
+## ⏳ TX Delay
+- **Range:** 4000-15000 ms
+- **Description:** Sets the delay between transactions for natural behavior
+
+## 💰 TX Amount Fee
+- **Range:** 0.001-0.003 SOL
+- **Description:** Specifies the range of SOL to be sent in each transaction
+
+## 🕰️ Daily Timer
+- **Status:** Enabled
+- **Description:** Determines if the script runs daily or continuously
 
 
-Claim boxes for all private keys:
+## Customize settings via the interactive menu:
 
-```bash
-npm run claimbox
-```
+1. Daily Run Time Range: Set daily script execution window
+2. TX Count Range: Define transactions per wallet
+3. TX Delay Range: Adjust delay between transactions
+4. TX Amount Fee Range: Set SOL amount per transaction
+5. Daily Timer: Toggle daily/continuous operation
+6. Check Wallet Balances: View all wallet balances
+7. Manual Operations: 
+   a. Daily Login
+   b. Claim Box
+   c. Open Box (for all wallets)
 
-Open boxes for all private keys:
+This version is more concise, using less vertical space while still maintaining clarity. Is this format more suitable for your needs?
 
-```bash
-npm run openbox
-```
 
-## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+## Contributing
+
+Contributions, issue reports, and feature requests are welcome. Please check the Issues page if you want to contribute.
+
+## Disclaimer
+
+This bot is designed for educational purposes only. Please use it at your own risk. The creators are not responsible for any potential losses or issues that may arise from using this bot.
