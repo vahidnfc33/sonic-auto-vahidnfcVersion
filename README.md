@@ -145,6 +145,14 @@ To access the configuration menu, run the script with the `-v`  flag:
 
 
 
+## Acknowledgments and Credits
+
+This project is based on the original work by [dante4rt](https://github.com/dante4rt). I mistakenly forgot to fork the project initially, but I want to acknowledge that the original idea and structure belong to them.
+Additionally, I used the version forked by [shaho](https://github.com/Theshaho), which was itself a fork of dante4rt's project.
+
+I am grateful to both of these developers for their valuable work, which provided the foundation for this project.
+
+
 ## Contributing
 
 Contributions, issue reports, and feature requests are welcome. Please check the Issues page if you want to contribute.
