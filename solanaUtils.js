@@ -12,7 +12,7 @@ const { derivePath } = require('ed25519-hd-key');
 const base58 = require('bs58');
 const colors = require('colors');
 
-const DEVNET_URL = 'https://api.testnet.v1.sonic.game/';
+const DEVNET_URL = 'https://api.testnet.v1.sonic.game';
 const connection = new Connection(DEVNET_URL, 'confirmed');
 
 async function sendSol(fromKeypair, toPublicKey, amount) {
