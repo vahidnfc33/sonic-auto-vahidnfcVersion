@@ -1,4 +1,3 @@
-const connection = new solana.Connection('https://api.testnet.v1.sonic.game', 'confirmed');
 const fs = require('fs');
 require('colors');
 const solana = require('@solana/web3.js');
@@ -10,6 +9,7 @@ const { HEADERS } = require('./headers');
 const { displayHeader, getNetworkTypeFromUser } = require('./displayUtils');
 const readlineSync = require('readline-sync');
 const moment = require('moment');
+const connection = new solana.Connection('https://api.testnet.v1.sonic.game', 'confirmed');
 
 const PRIVATE_KEYS = JSON.parse(fs.readFileSync('privateKeys.json', 'utf-8'));
 
