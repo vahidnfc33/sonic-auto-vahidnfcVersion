@@ -1,5 +1,8 @@
 const fs = require('fs');
 require('colors');
+const args = process.argv.slice(2);
+const walletIndex = args.find(arg => arg.startsWith('--wallet='))?.split('=')[1];
+const method = args.find(arg => arg.startsWith('--method='))?.split('=')[1];
 const solana = require('@solana/web3.js');
 const axios = require('axios').default;
 const base58 = require('bs58');
@@ -32,7 +35,8 @@ function getKeypair(privateKey) {
 module.exports = {
     getConnection,
     getNetType,
-    delay
+    delay,
+    processPrivateKey  // Add this line
 };
 
 async function getToken(privateKey) {
@@ -78,6 +82,44 @@ async function getToken(privateKey) {
     console.log(`Error fetching token: ${error}`.red);
   }
 }
+
+async function processAllActions(privateKey) {
+    try {
+        const publicKey = getKeypair(privateKey).publicKey.toBase58();
+        const token = await getToken(privateKey);
+        const profile = await getProfile(token);
+
+        console.log(`\n=== Processing Wallet: ${publicKey} ===`.cyan);
+        
+        // 1. Daily Login
+        console.log(`[ ${moment().format('HH:mm:ss')} ] Attempting Daily Login...`.yellow);
+        const loginResult = await dailyLogin(token, getKeypair(privateKey));
+        if (loginResult) {
+            console.log(`[ ${moment().format('HH:mm:ss')} ] Daily Login Success - Days: ${loginResult.data.accumulative_days}`.green);
+        }
+
+        // 2. Claim Box
+        console.log(`[ ${moment().format('HH:mm:ss')} ] Attempting Daily Claims...`.yellow);
+        await dailyClaim(token);
+
+        // 3. Open Available Boxes
+        if (profile.ring_monitor > 0) {
+            console.log(`[ ${moment().format('HH:mm:ss')} ] Opening ${profile.ring_monitor} available boxes...`.yellow);
+            for (let i = 0; i < profile.ring_monitor; i++) {
+                const openedBox = await openMysteryBox(token, getKeypair(privateKey));
+                if (openedBox?.data?.success) {
+                    console.log(`[ ${moment().format('HH:mm:ss')} ] Box ${i + 1}/${profile.ring_monitor} opened - Amount: ${openedBox.data.amount}`.green);
+                }
+            }
+        }
+
+        console.log(`[ ${moment().format('HH:mm:ss')} ] All actions completed for ${publicKey}`.cyan);
+    } catch (error) {
+        console.log(`Error processing wallet: ${error}`.red);
+    }
+}
+
+
 
 async function getProfile(token) {
   try {
@@ -420,18 +462,24 @@ async function dailyLogin(token, keypair) {
 
 (async () => {
     try {
-        displayHeader();
-        connection = getConnection(); // Using the imported getConnection
-
-        for (let i = 0; i < PRIVATE_KEYS.length; i++) {
-            const privateKey = PRIVATE_KEYS[i];
-            await processPrivateKey(privateKey);
+        if (method === '7') {
+            displayHeader();
+            connection = getConnection();
+            console.log('Starting automatic processing for all wallets...'.green);
+            for (let i = 0; i < PRIVATE_KEYS.length; i++) {
+                console.log(`\nProcessing Wallet ${i + 1}/${PRIVATE_KEYS.length}`.cyan);
+                await processAllActions(PRIVATE_KEYS[i]);
+            }
+            console.log('\nAll wallets have been processed successfully!'.green);
+        } else {
+            // Original execution flow remains unchanged
+            displayHeader();
+            connection = getConnection();
+            for (let i = 0; i < PRIVATE_KEYS.length; i++) {
+                await processPrivateKey(PRIVATE_KEYS[i]);
+            }
         }
-
-        console.log('All private keys processed.'.cyan);
     } catch (error) {
         console.log(`Error in bot operation: ${error}`.red);
-    } finally {
-        console.log('Thanks for having us! Subscribe: https://t.me/HappyCuanAirdrop'.magenta);
     }
 })();
