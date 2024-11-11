@@ -4,13 +4,16 @@ const solana = require('@solana/web3.js');
 const axios = require('axios').default;
 const base58 = require('bs58');
 const nacl = require('tweetnacl');
-const { connection, delay } = require('./solanaUtils');
+const { getConnection, delay, getNetType } = require('./solanaUtils');
 const { HEADERS } = require('./headers');
-const { displayHeader } = require('./displayUtils');
+const { displayHeader, getNetworkTypeFromUser } = require('./displayUtils');
 const readlineSync = require('readline-sync');
 const moment = require('moment');
 
 const PRIVATE_KEYS = JSON.parse(fs.readFileSync('privateKeys.json', 'utf-8'));
+
+const apiBaseUrl = 'https://odyssey-api-beta.sonic.game';
+var connection;
 
 function getKeypair(privateKey) {
   const decodedPrivateKey = base58.decode(privateKey);
@@ -20,7 +23,10 @@ function getKeypair(privateKey) {
 async function getToken(privateKey) {
   try {
     const { data } = await axios({
-      url: 'https://odyssey-api-beta.sonic.game/auth/sonic/challenge',
+      url:
+        apiBaseUrl +
+        (getNetType() == 3 ? '/testnet-v1' : getNetType() == 2 ? '/testnet' : '') +
+        '/auth/sonic/challenge',
       params: {
         wallet: getKeypair(privateKey).publicKey,
       },
@@ -31,13 +37,18 @@ async function getToken(privateKey) {
       Buffer.from(data.data),
       getKeypair(privateKey).secretKey
     );
+
     const signature = Buffer.from(sign).toString('base64');
     const publicKey = getKeypair(privateKey).publicKey;
     const encodedPublicKey = Buffer.from(publicKey.toBytes()).toString(
       'base64'
     );
+
     const response = await axios({
-      url: 'https://odyssey-api-beta.sonic.game/auth/sonic/authorize',
+      url:
+        apiBaseUrl +
+        (getNetType() == 3 ? '/testnet-v1' : getNetType() == 2 ? '/testnet' : '') +
+        '/auth/sonic/authorize',
       method: 'POST',
       headers: HEADERS,
       data: {
@@ -56,7 +67,10 @@ async function getToken(privateKey) {
 async function getProfile(token) {
   try {
     const { data } = await axios({
-      url: 'https://odyssey-api-beta.sonic.game/user/rewards/info',
+      url:
+        apiBaseUrl +
+        (getNetType() == 3 ? '/testnet-v1' : getNetType() == 2 ? '/testnet' : '') +
+        '/user/rewards/info',
       method: 'GET',
       headers: { ...HEADERS, Authorization: token },
     });
@@ -72,11 +86,13 @@ async function doTransactions(tx, keypair, retries = 3) {
     const bufferTransaction = tx.serialize();
     const signature = await connection.sendRawTransaction(bufferTransaction);
     await connection.confirmTransaction(signature);
+
     return signature;
   } catch (error) {
     if (retries > 0) {
       console.log(`Retrying transaction... (${retries} retries left)`.yellow);
       await new Promise((res) => setTimeout(res, 1000));
+
       return doTransactions(tx, keypair, retries - 1);
     } else {
       console.log(`Error in transaction: ${error}`.red);
@@ -88,17 +104,26 @@ async function doTransactions(tx, keypair, retries = 3) {
 async function openMysteryBox(token, keypair, retries = 3) {
   try {
     const { data } = await axios({
-      url: 'https://odyssey-api-beta.sonic.game/user/rewards/mystery-box/build-tx',
+      url:
+        apiBaseUrl +
+        (getNetType() == 3 ? '/testnet-v1' : getNetType() == 2 ? '/testnet' : '') +
+        '/user/rewards/mystery-box/build-tx',
       method: 'GET',
       headers: { ...HEADERS, Authorization: token },
     });
 
     const txBuffer = Buffer.from(data.data.hash, 'base64');
     const tx = solana.Transaction.from(txBuffer);
+
     tx.partialSign(keypair);
+
     const signature = await doTransactions(tx, keypair);
+
     const response = await axios({
-      url: 'https://odyssey-api-beta.sonic.game/user/rewards/mystery-box/open',
+      url:
+        apiBaseUrl +
+        (getNetType() == 3 ? '/testnet-v1' : getNetType() == 2 ? '/testnet' : '') +
+        '/user/rewards/mystery-box/open',
       method: 'POST',
       headers: { ...HEADERS, Authorization: token },
       data: {
@@ -112,7 +137,9 @@ async function openMysteryBox(token, keypair, retries = 3) {
       console.log(
         `Retrying opening mystery box... (${retries} retries left)`.yellow
       );
+
       await new Promise((res) => setTimeout(res, 1000));
+
       return openMysteryBox(token, keypair, retries - 1);
     } else {
       console.log(`Error opening mystery box: ${error}`.red);
@@ -121,7 +148,130 @@ async function openMysteryBox(token, keypair, retries = 3) {
   }
 }
 
-async function dailyClaim(token, retries = 3) {
+async function processPrivateKey(privateKey) {
+  try {
+    const publicKey = getKeypair(privateKey).publicKey.toBase58();
+    const token = await getToken(privateKey);
+    const profile = await getProfile(token);
+
+    if (profile.wallet_balance > 0) {
+      const balance = profile.wallet_balance / solana.LAMPORTS_PER_SOL;
+      const ringBalance = profile.ring;
+
+      const availableBoxes = profile.ring_monitor;
+      console.log(
+        `Hello ${publicKey}! Welcome to our bot. Here are your details:`.green
+      );
+
+      console.log(`Solana Balance: ${balance} SOL`.green);
+      console.log(`Ring Balance: ${ringBalance}`.green);
+      console.log(`Available Box(es): ${availableBoxes}`.green);
+      console.log('');
+
+      const method = readlineSync.question(
+        'Select input method (1 for claim box, 2 for open box, 3 for daily login): '
+      );
+
+      if (method === '1') {
+        console.log(`[ ${moment().format('HH:mm:ss')} ] Please wait...`.yellow);
+        await dailyClaim(token);
+        console.log(
+          `[ ${moment().format('HH:mm:ss')} ] All tasks completed!`.cyan
+        );
+      } else if (method === '2') {
+        let totalClaim;
+        do {
+          totalClaim = readlineSync.question(
+            `How many boxes do you want to open? (Maximum is: ${availableBoxes}): `
+              .blue
+          );
+
+          if (totalClaim > availableBoxes) {
+            console.log(`You cannot open more boxes than available`.red);
+          } else if (isNaN(totalClaim)) {
+            console.log(`Please enter a valid number`.red);
+          } else {
+            console.log(
+              `[ ${moment().format('HH:mm:ss')} ] Please wait...`.yellow
+            );
+
+            for (let i = 0; i < totalClaim; i++) {
+              const openedBox = await openMysteryBox(
+                token,
+                getKeypair(privateKey)
+              );
+
+              if (openedBox.data.success) {
+                console.log(
+                  `[ ${moment().format(
+                    'HH:mm:ss'
+                  )} ] Box opened successfully! Status: ${
+                    openedBox.status
+                  } | Amount: ${openedBox.data.amount}`.green
+                );
+              }
+            }
+
+            console.log(
+              `[ ${moment().format('HH:mm:ss')} ] All tasks completed!`.cyan
+            );
+          }
+        } while (totalClaim > availableBoxes);
+      } else if (method === '3') {
+        console.log(`[ ${moment().format('HH:mm:ss')} ] Please wait...`.yellow);
+
+        const claimLogin = await dailyLogin(token, getKeypair(privateKey));
+
+        if (claimLogin) {
+          console.log(
+            `[ ${moment().format(
+              'HH:mm:ss'
+            )} ] Daily login has been success! Status: ${
+              claimLogin.status
+            } | Accumulative Days: ${claimLogin.data.accumulative_days}`.green
+          );
+        }
+
+        console.log(
+          `[ ${moment().format('HH:mm:ss')} ] All tasks completed!`.cyan
+        );
+      } else {
+        throw new Error('Invalid input method selected'.red);
+      }
+    } else {
+      console.log(
+        `There might be errors if you don't have sufficient balance or the RPC is down. Please ensure your balance is sufficient and your connection is stable`
+          .red
+      );
+    }
+  } catch (error) {
+    console.log(`Error processing private key: ${error}`.red);
+  }
+  console.log('');
+}
+
+async function fetchDaily(token) {
+  try {
+    const { data } = await axios({
+      url:
+        apiBaseUrl +
+        (getNetType() == 3 ? '/testnet-v1' : getNetType() == 2 ? '/testnet' : '') +
+        '/user/transactions/state/daily',
+      method: 'GET',
+      headers: { ...HEADERS, Authorization: token },
+    });
+
+    return data.data.total_transactions;
+  } catch (error) {
+    console.log(
+      `[ ${moment().format('HH:mm:ss')} ] Error in daily fetching: ${
+        error.response.data.message
+      }`.red
+    );
+  }
+}
+
+async function dailyClaim(token) {
   let counter = 1;
   const maxCounter = 3;
 
@@ -138,7 +288,10 @@ async function dailyClaim(token, retries = 3) {
       while (counter <= maxCounter) {
         try {
           const { data } = await axios({
-            url: 'https://odyssey-api.sonic.game/user/transactions/rewards/claim',
+            url:
+              apiBaseUrl +
+              (getNetType() == 3 ? '/testnet-v1' : getNetType() == 2 ? '/testnet' : '') +
+              '/user/transactions/rewards/claim',
             method: 'POST',
             headers: { ...HEADERS, Authorization: token },
             data: {
@@ -194,35 +347,37 @@ async function dailyClaim(token, retries = 3) {
       throw new Error('Not enough transactions to claim rewards.');
     }
   } catch (error) {
-    if (retries > 0) {
-      console.log(`Retrying daily claim... (${retries} retries left)`.yellow);
-      await new Promise((res) => setTimeout(res, 1000));
-      return dailyClaim(token, retries - 1);
-    } else {
-      console.log(
-        `[ ${moment().format('HH:mm:ss')} ] Error in daily claim: ${
-          error.message
-        }`.red
-      );
-    }
+    console.log(
+      `[ ${moment().format('HH:mm:ss')} ] Error in daily claim: ${
+        error.message
+      }`.red
+    );
   }
 }
 
-async function dailyLogin(token, keypair, retries = 3) {
+async function dailyLogin(token, keypair) {
   try {
     const { data } = await axios({
-      url: 'https://odyssey-api-beta.sonic.game/user/check-in/transaction',
+      url:
+        apiBaseUrl +
+        (getNetType() == 3 ? '/testnet-v1' : getNetType() == 2 ? '/testnet' : '') +
+        '/user/check-in/transaction',
       method: 'GET',
       headers: { ...HEADERS, Authorization: token },
     });
 
     const txBuffer = Buffer.from(data.data.hash, 'base64');
     const tx = solana.Transaction.from(txBuffer);
+
     tx.partialSign(keypair);
+
     const signature = await doTransactions(tx, keypair);
 
     const response = await axios({
-      url: 'https://odyssey-api-beta.sonic.game/user/check-in',
+      url:
+        apiBaseUrl +
+        (getNetType() == 3 ? '/testnet-v1' : getNetType() == 2 ? '/testnet' : '') +
+        '/user/check-in',
       method: 'POST',
       headers: { ...HEADERS, Authorization: token },
       data: {
@@ -238,10 +393,6 @@ async function dailyLogin(token, keypair, retries = 3) {
           error.response.data.message
         }`.red
       );
-    } else if (retries > 0) {
-      console.log(`Retrying daily login... (${retries} retries left)`.yellow);
-      await new Promise((res) => setTimeout(res, 1000));
-      return dailyLogin(token, keypair, retries - 1);
     } else {
       console.log(
         `[ ${moment().format('HH:mm:ss')} ] Error claiming: ${
@@ -252,129 +403,15 @@ async function dailyLogin(token, keypair, retries = 3) {
   }
 }
 
-async function fetchDaily(token) {
-  try {
-    const { data } = await axios({
-      url: 'https://odyssey-api-beta.sonic.game/user/transactions/state/daily',
-      method: 'GET',
-      headers: { ...HEADERS, Authorization: token },
-    });
-
-    return data.data.total_transactions;
-  } catch (error) {
-    console.log(
-      `[ ${moment().format('HH:mm:ss')} ] Error in daily fetching: ${
-        error.response.data.message
-      }`.red
-    );
-  }
-}
-
-async function processPrivateKey(privateKey, method, retries = 3) {
-  try {
-    const publicKey = getKeypair(privateKey).publicKey.toBase58();
-    const token = await getToken(privateKey);
-    const profile = await getProfile(token);
-
-    if (profile.wallet_balance > 0) {
-      const balance = profile.wallet_balance / solana.LAMPORTS_PER_SOL;
-      const ringBalance = profile.ring;
-      const availableBoxes = profile.ring_monitor;
-      console.log(
-        `Hello ${publicKey}! Welcome to our bot. Here are your details:`.green
-      );
-      console.log(`Solana Balance: ${balance} SOL`.green);
-      console.log(`Ring Balance: ${ringBalance}`.green);
-      console.log(`Available Box(es): ${availableBoxes}`.green);
-      console.log('');
-
-      switch (method) {
-        case '1':
-          console.log(`[ ${moment().format('HH:mm:ss')} ] Please wait...`.yellow);
-          await dailyClaim(token);
-          console.log(
-            `[ ${moment().format('HH:mm:ss')} ] All tasks completed!`.cyan
-          );
-          break;
-        case '2':
-          console.log(`[ ${moment().format('HH:mm:ss')} ] Please wait...`.yellow);
-          const totalClaim = availableBoxes;
-          for (let i = 0; i < totalClaim; i++) {
-            try {
-              const openedBox = await openMysteryBox(token, getKeypair(privateKey));
-              if (openedBox.data.success) {
-                console.log(
-                  `[ ${moment().format(
-                    'HH:mm:ss'
-                  )} ] Box opened successfully! Status: ${
-                    openedBox.status
-                  } | Amount: ${openedBox.data.amount}`.green
-                );
-              }
-            } catch (error) {
-              console.log(`Error opening box: ${error}`.red);
-            }
-          }
-          console.log(
-            `[ ${moment().format('HH:mm:ss')} ] All tasks completed!`.cyan
-          );
-          break;
-        case '3':
-          console.log(`[ ${moment().format('HH:mm:ss')} ] Please wait...`.yellow);
-          const claimLogin = await dailyLogin(token, getKeypair(privateKey));
-          if (claimLogin) {
-            console.log(
-              `[ ${moment().format(
-                'HH:mm:ss'
-              )} ] Daily login has been success! Status: ${
-                claimLogin.status
-              } | Accumulative Days: ${claimLogin.data.accumulative_days}`.green
-            );
-          }
-          console.log(
-            `[ ${moment().format('HH:mm:ss')} ] All tasks completed!`.cyan
-          );
-          break;
-        default:
-          throw new Error('Invalid input method selected'.red);
-      }
-    } else {
-      console.log(
-        `There might be errors if you don't have sufficient balance or the RPC is down. Please ensure your balance is sufficient and your connection is stable`
-          .red
-      );
-    }
-  } catch (error) {
-    console.log(`Error processing private key: ${error}`.red);
-    if (retries > 0) {
-      console.log(`Retrying private key processing... (${retries} retries left)`.yellow);
-      await new Promise((res) => setTimeout(res, 1000));
-      return processPrivateKey(privateKey, method, retries - 1);
-    }
-  }
-  console.log('');
-}
-
 (async () => {
   try {
     displayHeader();
+    await getNetworkTypeFromUser();
+    connection = getConnection();
 
-    // Process all private keys with method '3' (daily login)
     for (let i = 0; i < PRIVATE_KEYS.length; i++) {
       const privateKey = PRIVATE_KEYS[i];
-      await processPrivateKey(privateKey, '3');
-    }
-
-    // Process all private keys with method '1' (claim box)
-    for (let i = 0; i < PRIVATE_KEYS.length; i++) {
-      const privateKey = PRIVATE_KEYS[i];
-      await processPrivateKey(privateKey, '1');
-    }
-
-    // Process all private keys with method '2' (open box)
-    for (let i = 0; i < PRIVATE_KEYS.length; i++) {
-      const privateKey = PRIVATE_KEYS[i];
-      await processPrivateKey(privateKey, '2');
+      await processPrivateKey(privateKey);
     }
 
     console.log('All private keys processed.'.cyan);
