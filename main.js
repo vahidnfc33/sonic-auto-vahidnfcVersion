@@ -1,8 +1,14 @@
-    const { exec } = require('child_process');
+const { exec } = require('child_process');
 const fs = require('fs');
 const crypto = require('crypto');
+const axios = require('axios').default;
 const colors = require('colors');
 const readline = require('readline');
+const nacl = require('tweetnacl');
+const base58 = require('bs58');
+const { HEADERS } = require('./headers');
+const apiBaseUrl = 'https://odyssey-api-beta.sonic.game';
+
 const { 
     sendSol, 
     generateRandomAddresses, 
@@ -86,6 +92,57 @@ async function loadOrCreatePrivateKeys() {
     }
 }
 
+
+async function getToken(privateKey) {
+    try {
+        const keypair = getKeypairFromPrivateKey(privateKey);
+        const { data } = await axios({
+            url: `${apiBaseUrl}/testnet-v1/auth/sonic/challenge`,
+            params: { wallet: keypair.publicKey },
+            headers: HEADERS,
+        });
+
+        const sign = nacl.sign.detached(
+            Buffer.from(data.data),
+            keypair.secretKey
+        );
+
+        const signature = Buffer.from(sign).toString('base64');
+        const encodedPublicKey = Buffer.from(keypair.publicKey.toBytes()).toString('base64');
+
+        const response = await axios({
+            url: `${apiBaseUrl}/testnet-v1/auth/sonic/authorize`,
+            method: 'POST',
+            headers: HEADERS,
+            data: {
+                address: keypair.publicKey,
+                address_encoded: encodedPublicKey,
+                signature,
+            },
+        });
+
+        return response.data.data.token;
+    } catch (error) {
+        console.log(`Error getting token: ${error.message}`.red);
+        return null;
+    }
+}
+
+async function getProfile(token) {
+    try {
+        const { data } = await axios({
+            url: `${apiBaseUrl}/testnet-v1/user/rewards/info`,
+            method: 'GET',
+            headers: { ...HEADERS, Authorization: token },
+        });
+        return data.data;
+    } catch (error) {
+        console.log(`Error getting profile: ${error.message}`.red);
+        return null;
+    }
+}
+
+
 async function loadOrCreateProgress() {
     if (fs.existsSync(PROGRESS_FILE)) {
         try {
@@ -164,6 +221,7 @@ function displayCurrentConfig(config) {
     console.log('   ' + '(Determines if the script runs daily or continuously)'.gray);
 }
 
+
 async function viewWalletBalances() {
     console.log('\nFetching wallet balances...'.yellow);
     
@@ -176,52 +234,84 @@ async function viewWalletBalances() {
             return;
         }
     }
-    console.log('='.repeat(80).cyan);
+    console.log('='.repeat(120).cyan);
     console.log('Wallet Balances:'.cyan.bold);
-    console.log('='.repeat(80).cyan);
+    console.log('='.repeat(120).cyan);
+    
     for (let i = 0; i < PRIVATE_KEYS.length; i++) {
         try {
             const keypair = getKeypairFromPrivateKey(PRIVATE_KEYS[i]);
             if (keypair) {
                 const balance = await getWalletBalance(keypair.publicKey.toString());
-                let colorFunction;
+                const token = await getToken(PRIVATE_KEYS[i]);
+                const profile = token ? await getProfile(token) : null;
+                
+                let balanceColor;
                 if (balance < 0.1) {
-                    colorFunction = str => str.red;
+                    balanceColor = 'red';
                 } else if (balance >= 0.1 && balance <= 0.4) {
-                    colorFunction = str => str.yellow;
+                    balanceColor = 'yellow';
                 } else {
-                    colorFunction = str => str.green;
+                    balanceColor = 'green';
                 }
-                console.log(colorFunction(`${i + 1}- ${keypair.publicKey.toString()} | Balance: ${balance.toFixed(6)} SOL`));
+                
+                let output = `${i + 1}- ${keypair.publicKey.toString()}`.cyan;
+                output += `    SOL: ${balance.toFixed(6)}`[balanceColor];
+                
+                if (profile) {
+                    output += `    Ring: ${profile.ring}`.yellow;
+                    output += `    Boxes: ${profile.ring_monitor}`.green;
+                }
+                
+                console.log(output);
             } else {
                 console.log(`${i + 1}- Invalid private key`.red);
             }
         } catch (error) {
             console.log(`${i + 1}- Error: ${error.message}`.red);
         }
-        console.log('-'.repeat(80).gray);
+        console.log('-'.repeat(120).gray);
         await delay(500);
     }
     console.log('\nPress Enter to return to the main menu...'.yellow);
     await new Promise(resolve => rl.question('', resolve));
 }
 
-async function performDailyOperationsForAllWallets() {
-    console.log("\n🔄 Performing daily operations for all wallets...".cyan.bold);
-    
-    console.log("\nRunning daily login for all wallets...".yellow);
-    await runCommand('node dailylogin.js');
-    await delay(5000);
-
-    console.log("\nClaiming boxes for all wallets...".yellow);
-    await runCommand('node claimbox.js');
-    await delay(5000);
-
-    console.log("\nOpening boxes for all wallets...".yellow);
-    await runCommand('node openbox.js');
-    
-    console.log("\n✅ Daily operations completed for all wallets".green.bold);
+function runCommand(command) {
+    return new Promise((resolve, reject) => {
+        const childProcess = exec(command, { stdio: 'inherit' }, (error, stdout, stderr) => {
+            if (error) {
+                console.error(`Error executing ${command}: ${error}`.red);
+                resolve(false);
+            } else {
+                resolve(true);
+            }
+        });
+        
+        // Pipe the output to see it in real-time
+        childProcess.stdout?.pipe(process.stdout);
+        childProcess.stderr?.pipe(process.stderr);
+    });
 }
+
+function executeCommandWithOutput(command) {
+    return new Promise((resolve) => {
+        const proc = exec(command);
+        
+        proc.stdout.on('data', (data) => {
+            process.stdout.write(data);
+        });
+        
+        proc.stderr.on('data', (data) => {
+            process.stderr.write(data);
+        });
+        
+        proc.on('close', (code) => {
+            resolve(code === 0);
+        });
+    });
+}
+
 
 async function showConfigMenu() {
     loadConfig();
@@ -286,9 +376,24 @@ async function showConfigMenu() {
                 console.clear();
                 break;
             case '7':
-                await performDailyOperationsForAllWallets();
+                console.clear();
+                console.log('\n🚀 Starting daily operations for all wallets...'.cyan.bold);
+                console.log('='.repeat(80).cyan);
+                
+                const success = await executeCommandWithOutput('node claimbox.js --method=7');
+                
+                if (success) {
+                    console.log('\n✅ All daily operations completed successfully!'.green.bold);
+                } else {
+                    console.log('\n❌ Some operations encountered errors.'.red.bold);
+                }
+                
+                console.log('='.repeat(80).cyan);
+                console.log('\nPress Enter to return to the main menu...'.yellow);
+                await question('');
                 console.clear();
                 break;
+
             case '8':
                 if (configChanged) {
                     console.log('Configuration changes have been saved.'.green);
@@ -308,6 +413,52 @@ async function showConfigMenu() {
         }
     }
 }
+
+
+
+async function performDailyOperationsForAllWallets() {
+    console.log('\n🔄 Starting daily operations for all wallets...'.cyan.bold);
+    
+    for (let i = 0; i < PRIVATE_KEYS.length; i++) {
+        const privateKey = PRIVATE_KEYS[i];
+        const keypair = getKeypairFromPrivateKey(privateKey);
+        console.log(`\n📍 Processing wallet ${i + 1}/${PRIVATE_KEYS.length}: ${keypair.publicKey.toString()}`.yellow);
+
+        try {
+            // Run claimbox.js operations
+            console.log('\n🔄 Executing daily operations...'.cyan);
+            
+            // Method 3: Daily Login
+            console.log('\n🔑 Performing daily login...'.yellow);
+            await runCommand(`node claimbox.js --wallet=${i} --method=3`);
+            await delay(2000);
+
+            // Method 1: Claim Box
+            console.log('\n📦 Claiming box...'.yellow);
+            await runCommand(`node claimbox.js --wallet=${i} --method=1`);
+            await delay(2000);
+
+            // Method 2: Open Box
+            console.log('\n🎁 Opening box...'.yellow);
+            await runCommand(`node claimbox.js --wallet=${i} --method=2`);
+            await delay(2000);
+
+            console.log(`\n✅ Completed all operations for wallet ${i + 1}/${PRIVATE_KEYS.length}`.green);
+        } catch (error) {
+            console.log(`\n❌ Error processing wallet ${i + 1}: ${error.message}`.red);
+        }
+
+        if (i < PRIVATE_KEYS.length - 1) {
+            console.log('\n⏳ Waiting 30 seconds before processing next wallet...'.yellow);
+            await delay(30000);
+        }
+    }
+    
+    console.log('\n🎉 Completed daily operations for all wallets!'.green.bold);
+}
+
+
+
 
 
 function getRandomDelay() {
@@ -475,9 +626,21 @@ async function processAllWallets() {
     PROGRESS.currentTransactionIndex = 0;
     saveProgress();
 
-    // Perform daily operations for all wallets
-    await performDailyOperationsForAllWallets();
+    // New implementation for daily operations
+    console.log('\n🚀 Starting daily operations for all wallets...'.cyan.bold);
+    console.log('='.repeat(80).cyan);
+    
+    const success = await executeCommandWithOutput('node claimbox.js --method=7');
+    
+    if (success) {
+        console.log('\n✅ All daily operations completed successfully!'.green.bold);
+    } else {
+        console.log('\n❌ Some operations encountered errors.'.red.bold);
+    }
+    
+    console.log('='.repeat(80).cyan);
 }
+
 
 async function scheduleNextExecution() {
     if (!CONFIG.USE_DAILY_TIMER) {
