@@ -1,3 +1,4 @@
+const connection = new solana.Connection('https://api.testnet.v1.sonic.game', 'confirmed');
 const fs = require('fs');
 require('colors');
 const solana = require('@solana/web3.js');
@@ -13,7 +14,6 @@ const moment = require('moment');
 const PRIVATE_KEYS = JSON.parse(fs.readFileSync('privateKeys.json', 'utf-8'));
 
 const apiBaseUrl = 'https://odyssey-api-beta.sonic.game';
-var connection;
 
 function getKeypair(privateKey) {
   const decodedPrivateKey = base58.decode(privateKey);
@@ -407,7 +407,6 @@ async function dailyLogin(token, keypair) {
   try {
     displayHeader();
     await getNetworkTypeFromUser();
-    connection = getConnection();
 
     for (let i = 0; i < PRIVATE_KEYS.length; i++) {
       const privateKey = PRIVATE_KEYS[i];
